@@ -18,15 +18,15 @@
             <input type="hidden" asp-for="Email" />
             @for (int i = 0; i < Model.ShopCart!.Count; i++)
             {
-                <input type="hidden" asp-for="ShopCart[i].CustomerId" />
-                <input type="hidden" asp-for="ShopCart[i].VideoGameId" />
-                <input type="hidden" asp-for="ShopCart[i].UnitPrice" />
-                <input type="hidden" asp-for="ShopCart[i].Quantity" />
-                <input type="hidden" asp-for="ShopCart[i].TotalPrice" />
-                <input type="hidden" asp-for="ShopCart[i].VideoGame.Id" />
-                <input type="hidden" asp-for="ShopCart[i].VideoGame.Title" />
-                <input type="hidden" asp-for="ShopCart[i].VideoGame.Stock" />
-                <input type="hidden" asp-for="ShopCart[i].VideoGame.IsFinal" />
+                <input type="hidden" asp-for="ShopCart![i].CustomerId" />
+                <input type="hidden" asp-for="ShopCart![i].VideoGameId" />
+                <input type="hidden" asp-for="ShopCart![i].UnitPrice" />
+                <input type="hidden" asp-for="ShopCart![i].Quantity" />
+                <input type="hidden" asp-for="ShopCart![i].TotalPrice" />
+                <input type="hidden" asp-for="ShopCart![i].VideoGame!.Id" />
+                <input type="hidden" asp-for="ShopCart![i].VideoGame!.Title" />
+                <input type="hidden" asp-for="ShopCart![i].VideoGame!.Stock" />
+                <input type="hidden" asp-for="ShopCart![i].VideoGame!.IsFinal" />
             }
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group mb-2">

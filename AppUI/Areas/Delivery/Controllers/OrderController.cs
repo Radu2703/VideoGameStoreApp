@@ -13,7 +13,6 @@ using AppUI.Areas.Delivery.Models.ViewModels;
 using AppUI.Areas.Delivery.Models.DTOs;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
-using AppUI.Areas.Manager.Models.DTOs;
 //using Elfie.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -61,11 +60,11 @@ public class OrderController : Controller
                 .Include(c => c.PayingMethod)
                 .Include(c => c.OrderContents)
                 .Include(c => c.DeliveryName)
-                .Where(c => c.IsDelivery == true 
+                .Where(c => c.IsDelivery == true && c.IsFinal == false
                  && c.ArrivalTime.TimeOfDay >= item.StartHour && c.ArrivalTime.TimeOfDay <= item.EndHour
-                 && (c.DeliveryId == null || c.DeliveryId == 0 || c.DeliveryId == item.EmployeeId))
+                 && (c.WorkerId == null || c.WorkerId == 0))
                 .OrderBy(c => c.IsFinal)
-                .ThenByDescending(c => c.DeliveryId)
+                .ThenByDescending(c => c.WorkerId)
                 .ThenBy(c => c.ArrivalTime)
                 .ToListAsync());
 
@@ -78,6 +77,13 @@ public class OrderController : Controller
                 }
             }
         }
+
+        output.ListOrders = output.ListOrders
+                            .OrderBy(c => c.IsFinal)
+                            .ThenBy(c => c.ArrivalTime)
+                            .ThenBy(c => c.Id)
+                            .ThenByDescending(c => c.DeliveryTime)
+                            .ToList();
 
         return View(output);
     }
@@ -139,10 +145,10 @@ public class OrderController : Controller
                         .Include(i => i.Day)
                         .Where(i => i.Employee!.UserName == User.Identity!.Name)
                         .FirstOrDefaultAsync();
-        if (ExistentOrder.DeliveryId == null || ExistentOrder.DeliveryId == 0) {
-            output.DeliveryId = empSched!.EmployeeId;
+        if (ExistentOrder.WorkerId == null || ExistentOrder.WorkerId == 0) {
+            output.WorkerId = empSched!.EmployeeId;
         }
-        else output.DeliveryId = null;
+        else output.WorkerId = null;
         /*
         var methods = _mapper.Map<List<PayingMethodDto>>(
             await _context.PayingMethods
@@ -189,10 +195,9 @@ public class OrderController : Controller
                         .Include(c => c.PayingMethod)
                         .Include(c => c.OrderContents)
                         .Include(c => c.DeliveryName)
-                        .Where(c => c.Id == id
-                         && c.IsDelivery == true
+                        .Where(c => c.Id == id && c.IsDelivery == true
                          && c.ArrivalTime.TimeOfDay >= item.StartHour && c.ArrivalTime.TimeOfDay <= item.EndHour
-                         && (c.DeliveryId == null || c.DeliveryId == 0 || c.DeliveryId == item.EmployeeId))
+                         && (c.WorkerId == null || c.WorkerId == 0))
                         .FirstOrDefaultAsync();
 
                     if (Order != null)
@@ -204,7 +209,7 @@ public class OrderController : Controller
 
                 if (!psbl)
                 {
-                    TempData["MessageDeliveredOrder"] = $"Order number {ModifiedOrder.Id} is either no longer a delivery, no longer within your schedule, or was taken by someone else already!";
+                    TempData["MessageDeliveredOrder"] = $"Order number {ModifiedOrder.Id} is either no longer a delivery, no longer within your schedule, was taken by someone else, or was already confirmed!";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -218,12 +223,12 @@ public class OrderController : Controller
                 ModifiedOrder.ToEntity(ref ExistentOrder);
                 _context.Update(ExistentOrder);
                 await _context.SaveChangesAsync();
-                if (ModifiedOrder.DeliveryId != 0 && ModifiedOrder.DeliveryId != null) {
-                    TempData["MessageDeliveredOrder"] = $"Order number {ModifiedOrder.Id} has been picked up by you!";
+                if (ModifiedOrder.WorkerId != 0 && ModifiedOrder.WorkerId != null) {
+                    TempData["MessageDeliveredOrder"] = $"Order number {ModifiedOrder.Id} has been <strong>picked up</strong> by you!";
                 }
                 else
                 {
-                    TempData["MessageDeliveredOrder"] = $"Order number {ModifiedOrder.Id} has been freed up by you!";
+                    TempData["MessageDeliveredOrder"] = $"Order number {ModifiedOrder.Id} has been <strong>freed up</strong> by you!";
                 }
             }
             catch (DbUpdateConcurrencyException)
@@ -255,11 +260,11 @@ public class OrderController : Controller
                         .Include(i => i.Day)
                         .Where(i => i.Employee!.UserName == User.Identity!.Name)
                         .FirstOrDefaultAsync();
-        if (ExistenOrder.DeliveryId == null || ExistenOrder.DeliveryId == 0)
+        if (ExistenOrder.WorkerId == null || ExistenOrder.WorkerId == 0)
         {
-            output.DeliveryId = empSche!.EmployeeId;
+            output.WorkerId = empSche!.EmployeeId;
         }
-        else output.DeliveryId = null;
+        else output.WorkerId = null;
         TempData["MessageDeliveredOrder"] = $"Please complete the necessary information properly!";
         /*
         var payingmethods = _mapper.Map<List<PayingMethodDto>>(
@@ -309,6 +314,77 @@ public class OrderController : Controller
             output.Comment = FeedBack.Comment;
             output.IsNewFeedBack = false;
         }
+        return View(output);
+    }
+
+    [Route("Delivery/Order/TimePeriod/{id}")]
+    public async Task<IActionResult> TimePeriod(int? id)
+    {
+        var output = new OrderTimeVm()
+        {
+            id = (int)id!,
+            ListOrders = new List<OrderVm>()
+        };
+
+        var empSched = await _context.EmployeeSchedules
+                        .Include(i => i.Employee)
+                        .Include(i => i.Day)
+                        .Where(i => i.Employee!.UserName == User.Identity!.Name)
+                        .ToListAsync();
+
+        foreach (var item in empSched)
+        {
+            var weekday = item.Day!.Name;
+
+            var Orders = _mapper.Map<List<OrderVm>>(
+                await _context.Orders
+                .Include(c => c.Customer)
+                .Include(c => c.PayingMethod)
+                .Include(c => c.OrderContents)
+                .Include(c => c.FeedBack)
+                .Where(c => c.IsDelivery == true && c.IsFinal == false
+                 && c.ArrivalTime.TimeOfDay >= item.StartHour && c.ArrivalTime.TimeOfDay <= item.EndHour
+                 && (c.WorkerId == null || c.WorkerId == 0))
+                .OrderBy(c => c.ArrivalTime)
+                .ThenBy(c => c.Id)
+                .ToListAsync());
+
+            if (Orders != null)
+            {
+                foreach (var i in Orders)
+                {
+                    if (i.ArrivalTime.DayOfWeek.ToString().Equals(weekday))
+                        output.ListOrders.Add(i);
+                }
+            }
+        }
+
+        if (id == 1)
+        {
+            output.ListOrders = output.ListOrders
+                .Where(c => c.IsFinal ? c.DeliveryTime.AddDays(1) >= DateTime.Now : c.ArrivalTime.AddDays(1) >= DateTime.Now)
+                .ToList();
+        }
+        else if (id == 2)
+        {
+            output.ListOrders = output.ListOrders
+                .Where(c => c.IsFinal ? c.DeliveryTime.AddMonths(1) >= DateTime.Now : c.ArrivalTime.AddMonths(1) >= DateTime.Now)
+                .ToList();
+        }
+        else
+        {
+            output.ListOrders = output.ListOrders
+                .Where(c => c.IsFinal ? c.DeliveryTime.AddYears(1) >= DateTime.Now : c.ArrivalTime.AddYears(1) >= DateTime.Now)
+                .ToList();
+        }
+
+        output.ListOrders = output.ListOrders
+                            .OrderBy(c => c.IsFinal)
+                            .ThenByDescending(c => c.DeliveryTime)
+                            .ThenBy(c => c.ArrivalTime)
+                            .ThenBy(c => c.Id)
+                            .ToList();
+
         return View(output);
     }
 
@@ -488,11 +564,11 @@ public class OrderController : Controller
                 if (ModifiedOrder.IsFinal == true && ExistentOrder.IsFinal == false)
                 {
                     ModifiedOrder.DeliveryTime = DateTime.Now;
-                    TempData["MessageDeliveredOrder"] = $"Delivery for order number {ModifiedOrder.Id} for {ModifiedOrder.Name} has been confirmed!";
+                    TempData["MessageDeliveredOrder"] = $"Delivery for order number {ModifiedOrder.Id} for {ModifiedOrder.Name} has been <strong>confirmed</strong>!";
                 }
                 if (ModifiedOrder.IsFinal == false && ExistentOrder.IsFinal == true)
                 {
-                    TempData["MessageDeliveredOrder"] = $"Delivery for order number {ModifiedOrder.Id} for {ModifiedOrder.Name} has been unconfirmed!";
+                    TempData["MessageDeliveredOrder"] = $"Delivery for order number {ModifiedOrder.Id} for {ModifiedOrder.Name} has been <strong>unconfirmed</strong>!";
 
                     var ExistentFeedBack = await _context.FeedBacks
                                         .FirstOrDefaultAsync(q => q.Id == id);
@@ -502,6 +578,7 @@ public class OrderController : Controller
                         await _context.SaveChangesAsync();
                     }
                 }
+                
                 ModifiedOrder.ToEntity(ref ExistentOrder);
                 _context.Update(ExistentOrder);
                 await _context.SaveChangesAsync();

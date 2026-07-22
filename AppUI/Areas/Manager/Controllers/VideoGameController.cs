@@ -333,7 +333,7 @@ namespace AppUI.Areas.Manager.Controllers
 
             if (ExistentVideoGameOffer is not null)
             {
-                TempData["MessageVideoGame"] = $"The offer for <strong>{videoGame.Title}</strong> needs to be removed before the video game can be deleted!";
+                TempData["MessageVideoGame"] = $"The offer for <strong>{videoGame!.Title}</strong> needs to be removed before the video game can be deleted!";
                 return RedirectToAction(nameof(Index));
             }
 

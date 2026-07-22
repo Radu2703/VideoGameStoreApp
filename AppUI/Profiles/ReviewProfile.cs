@@ -1,6 +1,8 @@
 ﻿using AppUI.Areas.Critic.Models.DTOs;
 using AppUI.Areas.Manager.Models.ViewModels;
 using AppUI.Areas.Critic.Models.ViewModels;
+using AppUI.Areas.Admin.Models.DTOs;
+using AppUI.Areas.Admin.Models.ViewModels;
 using AppUI.Models.ViewModels;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace AppUI.Profiles;
@@ -9,7 +11,11 @@ public class ReviewProfile : Profile
 {
     public ReviewProfile()
     {
-        CreateMap<Review, ReviewVm>();
+        CreateMap<Review, Areas.Critic.Models.ViewModels.ReviewVm>();
+
+        CreateMap<Review, Areas.Admin.Models.ViewModels.ReviewVm>()
+            .ForMember(d => d.VideoGameId, s => s.MapFrom(src => src.VideoGame!.Id))
+            .ForMember(d => d.Title, s => s.MapFrom(src => src.VideoGame!.Title));
 
         CreateMap<NewReviewDto, Review>()
             .ForMember(d => d.IsFinal, s => s.MapFrom(src => false));

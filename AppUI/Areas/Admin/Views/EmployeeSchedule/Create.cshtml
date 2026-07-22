@@ -36,12 +36,12 @@
     </div>
 </div>
 <br />
+<br />
+@await Html.PartialAsync("_MessageResponse", "MessageEmployeeScheduleAdd")
 <div>
-    <partial name="_BackToList" />
+    <a asp-action="WeekDays">Back to list</a>
 </div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }
-
-@await Html.PartialAsync("_MessageResponse", "MessageEmployeeScheduleAdd")

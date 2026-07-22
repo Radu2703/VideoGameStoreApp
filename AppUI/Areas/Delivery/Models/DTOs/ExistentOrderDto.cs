@@ -11,7 +11,7 @@ public class ExistentOrderDto
     [Display(Name = "Is it a delivery?")]
     public bool IsDelivery { get; set; } = true;
     [Display(Name = "Delivery Worker")]
-    public int DeliveryId { get; set; }
+    public int WorkerId { get; set; }
     public string DeliveryName { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     [Tip]

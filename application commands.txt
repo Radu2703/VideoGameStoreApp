@@ -1,0 +1,13 @@
+In this folder we have the application created in the IDE named Microsoft Visual Studio, edition Community 2022.
+
+docker run --name dbWADproject -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Ovidius.23" -e "MSSQL_PID=Express" -dp 2333:1433 mcr.microsoft.com/mssql/server:2017-latest
+
+CREATE DATABASE dbWADproject; //the SQL command that can be used to create the database in Visual Studio Code
+
+Right click on the newly created database, and then use the .bak file in Visual Studio Code with the Restore Database feature
+
+Install-Package SendGrid //for email verification (you need to set up a SendGrid account and an email to send account confirmation emails from)
+
+dotnet aspnet-codegenerator identity --files Account.Manage.EnableAuthenticator //to scaffold EnableAuthenticator for the QR code
+
+For setting up external account registration on the website, a Google Cloud account will be necessary.

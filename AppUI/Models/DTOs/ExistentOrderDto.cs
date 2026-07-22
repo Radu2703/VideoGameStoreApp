@@ -8,7 +8,7 @@ public class ExistentOrderDto
     public int CustomerId { get; set; }
     public string Customer { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public int DeliveryId { get; set; }
+    public int WorkerId { get; set; }
     public string DeliveryName { get; set; } = string.Empty;
     [Display(Name = "Is it a delivery?")]
     public bool IsDelivery { get; set; } = true;
@@ -33,7 +33,7 @@ public class ExistentOrderDto
         {
             ExistentOrder.Name = Name;
             ExistentOrder.IsDelivery = IsDelivery;
-            //ExistentOrder.DeliveryId = DeliveryId;
+            //ExistentOrder.WorkerId = WorkerId;
             ExistentOrder.Address = Address;
             ExistentOrder.Tip = Tip;
             ExistentOrder.PayingMethodId = PayingMethodId;

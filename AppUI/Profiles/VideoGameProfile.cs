@@ -11,6 +11,9 @@ public class VideoGameProfile : Profile
 {
     public VideoGameProfile()
     {
+        CreateMap<VideoGame, Areas.Admin.Models.ViewModels.VideoGameVm>()
+            .ForMember(d => d.Genre, s => s.MapFrom(src => src.Genre!.Name));
+
         CreateMap<VideoGame, Areas.Manager.Models.ViewModels.VideoGameVm>()
             .ForMember(d => d.Genre, s => s.MapFrom(src => src.Genre!.Name));
 
@@ -37,6 +40,12 @@ public class VideoGameProfile : Profile
             .ForMember(d => d.IsFinal, s => s.MapFrom(src => src.IsFinal));
 
         CreateMap<VideoGame, Areas.Admin.Models.ViewModels.ShortVideoGameVm>()
+            .ForMember(d => d.Id, s => s.MapFrom(src => src.Id))
+            .ForMember(d => d.Title, s => s.MapFrom(src => src.Title))
+            .ForMember(d => d.Stock, s => s.MapFrom(src => src.Stock))
+            .ForMember(d => d.IsFinal, s => s.MapFrom(src => src.IsFinal));
+
+        CreateMap<VideoGame, Areas.Manager.Models.ViewModels.ShortVideoGameVm>()
             .ForMember(d => d.Id, s => s.MapFrom(src => src.Id))
             .ForMember(d => d.Title, s => s.MapFrom(src => src.Title))
             .ForMember(d => d.Stock, s => s.MapFrom(src => src.Stock))

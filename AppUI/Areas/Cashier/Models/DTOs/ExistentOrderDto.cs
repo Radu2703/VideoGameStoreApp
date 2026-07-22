@@ -10,6 +10,9 @@ public class ExistentOrderDto
     public string Name { get; set; } = string.Empty;
     [Display(Name = "Is it a delivery?")]
     public bool IsDelivery { get; set; } = true;
+    [Display(Name = "Worker")]
+    public int? WorkerId { get; set; }
+    public string DeliveryName { get; set; } = string.Empty;
     [Tip]
     public decimal Tip { get; set; }
     [Display(Name = "Paying Method")]
@@ -33,6 +36,7 @@ public class ExistentOrderDto
             //ExistentOrder.Tip = Tip;
             //ExistentOrder.PayingMethodId = PayingMethodId;
             //ExistentOrder.ArrivalTime = ArrivalTime;
+            ExistentOrder.WorkerId = WorkerId;
             if (IsFinal != ExistentOrder.IsFinal)
                 {ExistentOrder.DeliveryTime = DeliveryTime;}
             ExistentOrder.IsFinal = IsFinal;

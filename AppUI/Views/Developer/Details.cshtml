@@ -1,9 +1,8 @@
 ﻿@model DeveloperVideoGamesVm
 <section class="row">
     <article class="me-2">
-        <h4>@Html.DisplayFor(m => Model.DeveloperDetails!.FirstName) @Html.DisplayFor(m => Model.DeveloperDetails!.LastName) </h4>
+        <h2>@Html.DisplayFor(m => Model.DeveloperDetails!.FirstName) @Html.DisplayFor(m => Model.DeveloperDetails!.LastName) </h2>
         <hr/>
-        <h5>@Html.DisplayFor(m => Model.DeveloperDetails!.Birthday)</h5>
     </article>
     @if (Model.VideoGames!.Count() > 0)
     {

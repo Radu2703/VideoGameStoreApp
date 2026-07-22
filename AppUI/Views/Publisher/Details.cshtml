@@ -1,0 +1,24 @@
+﻿@model PublisherVideoGamesVm
+<section class="row">
+    <article class="me-2">
+        <h1>@Html.DisplayFor(m => Model.PublisherDetails!.Name)</h1><hr /><br />
+    </article>
+    <h2>Video games</h2>
+    @if (Model.VideoGames!.Count() > 0)
+    {
+        @foreach (var item in Model.VideoGames!)
+        {
+            <article class="me-2 col-lg-3">
+                @await Html.PartialAsync("VideoGame/_Card", item)
+            </article>
+        }
+    }
+    else
+    {
+        <article class="alert alert-warning" role="alert">There is no video game made by this publisher!</article>
+    }
+</section>
+<br />
+<div>
+    <partial name="_BackToList" />
+</div>

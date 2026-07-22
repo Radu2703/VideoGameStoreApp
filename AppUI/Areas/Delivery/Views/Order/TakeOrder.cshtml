@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "TakeOrder";
 }
-@if (Model.DeliveryId != 0 && Model.DeliveryId != null)
+@if (Model.WorkerId != 0 && Model.WorkerId != null)
 {
     <h1>Are you sure you want to take up the delivery order?</h1>
 }
@@ -27,7 +27,7 @@ else
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="Name" />
             <input type="hidden" asp-for="IsDelivery" />
-            <input type="hidden" asp-for="DeliveryId" />
+            <input type="hidden" asp-for="WorkerId" />
             <input type="hidden" asp-for="Address" />
             <input type="hidden" asp-for="Tip" />
             <input type="hidden" asp-for="PayingMethodId" />
@@ -65,16 +65,16 @@ else
                     <span asp-validation-for="ArrivalTime" class="text-danger"></span>
                 </div>
                 *@
-                @if (Model.DeliveryId != 0 && Model.DeliveryId != null)
+                @if (Model.WorkerId != 0 && Model.WorkerId != null)
                 {
                     <div class="form-group">
-                        <input type="submit" value="Take" class="btn btn-primary" />
+                        <input type="submit" value="Take up" class="btn btn-primary" />
                     </div>
                 }
                 else
                 {
                     <div class="form-group">
-                        <input type="submit" value="Free" class="btn btn-primary" />
+                        <input type="submit" value="Free up" class="btn btn-primary" />
                     </div>
                 }
             </div>

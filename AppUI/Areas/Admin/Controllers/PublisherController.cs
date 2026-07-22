@@ -26,6 +26,7 @@ public class PublisherController : Controller
     }
 
     // GET: Admin/Publisher
+    [Route("Admin/Publishers")]
     public async Task<IActionResult> Index()
     {
         if (_context.Publishers == null)
@@ -34,6 +35,7 @@ public class PublisherController : Controller
     }
 
     // GET: Admin/Publisher/Details/5
+    [Route("Admin/Publisher/Details/{id}")]
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null || _context.Publishers == null)
@@ -131,9 +133,9 @@ public class PublisherController : Controller
         {
             try
             {
+                TempData["MessagePublisher"] = $"We modified publisher <strong>{ExistentPublisher.Name}</strong> in <strong>{modifiedPublisher.Name}</strong>!";
                 ExistentPublisher.Name = modifiedPublisher.Name;
                 _context.Update(ExistentPublisher);
-                TempData["MessagePublisher"] = $"We modified publisher <strong>{ExistentPublisher.Name}</strong> in <strong>{modifiedPublisher.Name}</strong>!";
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
@@ -190,8 +192,8 @@ public class PublisherController : Controller
         {
             if (ExistentPublisher.VideoGames!.Count == 0 && ExistentPublisher.Managers!.Count == 0)
             {
-                _context.Publishers.Remove(ExistentPublisher);
                 TempData["MessagePublisher"] = $"Publisher <strong>{ExistentPublisher.Name}</strong> was successfully deleted!";
+                _context.Publishers.Remove(ExistentPublisher);
             }
             else
             {

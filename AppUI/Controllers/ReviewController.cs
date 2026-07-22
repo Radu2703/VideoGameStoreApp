@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AppUI.Models.ViewModels;
+using NuGet.Packaging.Signing;
 namespace AppUI.Controllers;
 public class ReviewController : Controller
 {
@@ -14,15 +15,58 @@ public class ReviewController : Controller
     }
 
     [Route("Reviews")]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Items()
     {
+        var VideoGames = await _context.VideoGames
+            .Include(t => t.Developers!)
+            .ThenInclude(t => t.Developer)
+            .Include(t => t.Genre)
+            .Include(t => t.Offer)
+            .Where(i => i.IsFinal)
+            .OrderBy(i => i.Title)
+            .ToListAsync();
+
         var Reviews = await _context.Reviews
             .Include(t => t.Reviewer!)
             .Include(t => t.VideoGame!)
             .Where(i => i.IsFinal && i.VideoGame!.IsFinal)
             .OrderBy(i => i.VideoGameId)
+        .ToListAsync();
+
+        var videoGameItems = new List<VideoGame>(VideoGames);
+
+        foreach (var item in VideoGames)
+        {
+            var r = Reviews.Where(c => c.VideoGameId == item.Id).FirstOrDefault();
+            if (r == null)
+            {
+                videoGameItems.Remove(item);
+            }
+        }
+        return View(_mapper.Map<List<CardVideoGameVm>>(videoGameItems));
+    }
+
+    [Route("Review/Index/{id}")]
+    public async Task<IActionResult> Index(int? id)
+    {
+        var Reviews = await _context.Reviews
+            .Include(t => t.Reviewer!)
+            .Include(t => t.VideoGame!)
+            .Where(i => i.IsFinal && i.VideoGame!.IsFinal && i.VideoGameId == id)
+            .OrderBy(i => i.VideoGameId)
             .ToListAsync();
-        return View(_mapper.Map<List<CardReviewVm>>(Reviews));
+
+        var videoGame = await _context.VideoGames
+            .Where(i => i.Id == id)
+            .FirstOrDefaultAsync();
+
+        var output = new IndexVideoGameReviewsVm()
+        {
+            VideoGame = videoGame!.Title,
+            ListReviews = _mapper.Map<List<CardReviewVm>>(Reviews)
+        };
+
+        return View(output);
     }
 
     [ActionName("Details")]

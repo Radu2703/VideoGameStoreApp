@@ -10,8 +10,8 @@ public class Order
     public int CustomerId { get; set; }
     [ForeignKey(nameof(CustomerId))]
     public AppUser? Customer { get; set; }
-    public int? DeliveryId { get; set; }
-    [ForeignKey(nameof(DeliveryId))]
+    public int? WorkerId { get; set; }
+    [ForeignKey(nameof(WorkerId))]
     public AppUser? DeliveryName { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsDelivery { get; set; } = false;

@@ -13,7 +13,6 @@ using AppUI.Areas.Admin.Models.ViewModels;
 using AppUI.Areas.Admin.Models.DTOs;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
-using AppUI.Areas.Manager.Models.DTOs;
 //using Elfie.Serialization;
 using Microsoft.AspNetCore.Authorization;
 
@@ -45,7 +44,9 @@ public class OrderController : Controller
             .Include(c => c.PayingMethod)
             .Include(c => c.OrderContents)
             .Include(c => c.FeedBack)
+            .Where(c => c.IsFinal == false)
             .OrderBy(c => c.IsFinal)
+            .ThenBy(c => c.Id)
             .ToListAsync());
         var output = new IndexOrdersVm()
         {
@@ -119,6 +120,48 @@ public class OrderController : Controller
         return View(output);
     }
 
+    [Route("Admin/Order/TimePeriod/{id}")]
+    public async Task<IActionResult> TimePeriod(int? id)
+    {
+        var Orders = _mapper.Map<List<OrderVm>>(
+            await _context.Orders
+            .Include(c => c.Customer)
+            .Include(c => c.DeliveryName)
+            .Include(c => c.PayingMethod)
+            .Include(c => c.OrderContents)
+            .Include(c => c.FeedBack)
+            .Where(c => c.IsFinal == false)
+            .OrderBy(c => c.ArrivalTime)
+            .ThenBy(c => c.Id)
+            .ToListAsync());
+
+        if (id == 1)
+        {
+            Orders = Orders
+            .Where(c => c.IsFinal ? c.DeliveryTime.AddDays(1) >= DateTime.Now : c.ArrivalTime.AddDays(1) >= DateTime.Now)
+            .ToList();
+        }
+        else if (id == 2)
+        {
+            Orders = Orders
+            .Where(c => c.IsFinal ? c.DeliveryTime.AddMonths(1) >= DateTime.Now : c.ArrivalTime.AddMonths(1) >= DateTime.Now)
+            .ToList();
+        }
+        else
+        {
+            Orders = Orders
+            .Where(c => c.IsFinal ? c.DeliveryTime.AddYears(1) >= DateTime.Now : c.ArrivalTime.AddYears(1) >= DateTime.Now)
+            .ToList();
+        }
+
+        var output = new OrderTimeVm()
+        {
+            id = (int)id!,
+            ListOrders = Orders
+        };
+        return View(output);
+    }
+
     // GET: Order/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
@@ -132,10 +175,17 @@ public class OrderController : Controller
             .Include(c => c.PayingMethod)
             .Include(c => c.OrderContents)
             .FirstOrDefaultAsync(q => q.Id == id);
-        if (ExistentOrder == null)
+        if (ExistentOrder == null || ExistentOrder.Customer == null)
         {
             return NotFound();
         }
+        /*
+        if (ExistentOrder.IsFinal == true)
+        {
+            TempData["MessageAdminOrder"] = $"Order number {ExistentOrder.Id} cannot be modified as it has been completed! You'll need to make it not final!";
+            return RedirectToAction(nameof(Index));
+        }
+        */
         var output = _mapper.Map<ExistentOrderDto>(ExistentOrder);
         var methods = _mapper.Map<List<PayingMethodDto>>(
             await _context.PayingMethods
@@ -146,10 +196,30 @@ public class OrderController : Controller
         }
         ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
 
-        var deliveries = _mapper.Map<List<ExistentUserDto>>(
+        List<ExistentUserDto>? employees = null;
+        var deliverers = _mapper.Map<List<ExistentUserDto>>(
             await _userManager.GetUsersInRoleAsync("Delivery"));
-        deliveries.Add(new ExistentUserDto() { Id = 0, IsDelivery = true });
-        ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+        var cashiers = _mapper.Map<List<ExistentUserDto>>(
+            await _userManager.GetUsersInRoleAsync("Cashier"));
+        if (deliverers == null && cashiers == null)
+        {
+            TempData["MessageAdminOrder"] = $"No employee has been registered yet!";
+            return RedirectToAction(nameof(Index));
+        }
+        if (deliverers == null && cashiers != null)
+        {
+            employees = cashiers;
+        }
+        else if (cashiers == null && deliverers != null)
+        {
+            employees = deliverers;
+        }
+        else if (cashiers != null && deliverers != null)
+        {
+            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers).OrderBy(i => i.Id));
+        }
+        employees!.Add(new ExistentUserDto() { Id = 0 });
+        ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
         return View(output);
     }
 
@@ -164,9 +234,29 @@ public class OrderController : Controller
         {
             return NotFound();
         }
-        var deliveries = _mapper.Map<List<ExistentUserDto>>(
+        List<ExistentUserDto>? employees = null;
+        var deliverers = _mapper.Map<List<ExistentUserDto>>(
             await _userManager.GetUsersInRoleAsync("Delivery"));
-        deliveries.Add(new ExistentUserDto() { Id = 0, IsDelivery = true });
+        var cashiers = _mapper.Map<List<ExistentUserDto>>(
+            await _userManager.GetUsersInRoleAsync("Cashier"));
+        if (deliverers == null && cashiers == null)
+        {
+            TempData["MessageAdminOrder"] = $"No employee has been registered yet!";
+            return RedirectToAction(nameof(Index));
+        }
+        if (deliverers == null && cashiers != null)
+        {
+            employees = cashiers;
+        }
+        else if (cashiers == null && deliverers != null)
+        {
+            employees = deliverers;
+        }
+        else if (cashiers != null && deliverers != null)
+        {
+            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers).OrderBy(i => i.Id));
+        }
+        employees!.Add(new ExistentUserDto() { Id = 0 });
 
         if (ModelState.IsValid)
         {
@@ -195,7 +285,7 @@ public class OrderController : Controller
                             return NotFound();
                         }
                         ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                        ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                        ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                         return View(ModifiedOrder);
                     }
                     if (ModifiedOrder.ArrivalTime.TimeOfDay < specialday.StartHour || ModifiedOrder.ArrivalTime.TimeOfDay > specialday.EndHour)
@@ -209,7 +299,7 @@ public class OrderController : Controller
                             return NotFound();
                         }
                         ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                        ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                        ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                         return View(ModifiedOrder);
                     }
                 }
@@ -230,7 +320,7 @@ public class OrderController : Controller
                             return NotFound();
                         }
                         ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                        ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                        ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                         return View(ModifiedOrder);
                     }
                     if (ModifiedOrder.ArrivalTime.TimeOfDay < workhour.StartHour || ModifiedOrder.ArrivalTime.TimeOfDay > workhour.EndHour)
@@ -244,7 +334,7 @@ public class OrderController : Controller
                             return NotFound();
                         }
                         ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                        ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                        ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                         return View(ModifiedOrder);
                     }
                 }
@@ -260,14 +350,14 @@ public class OrderController : Controller
                         return NotFound();
                     }
                     ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                    ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                    ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                     return View(ModifiedOrder);
                 }
 
                 var empSched = await _context.EmployeeSchedules
                         .Include(i => i.Employee)
                         .Include(i => i.Day)
-                        .Where(i => i.EmployeeId == ModifiedOrder.DeliveryId)
+                        .Where(i => i.EmployeeId == ModifiedOrder.WorkerId)
                         .ToListAsync();
 
                 var psblty = false;
@@ -286,9 +376,9 @@ public class OrderController : Controller
                     }
                 }
 
-                if (psblty==false && ModifiedOrder.IsDelivery==true && ModifiedOrder.DeliveryId!=0)
+                if (psblty==false && ModifiedOrder.WorkerId!=0)
                 {
-                    TempData["MessageOrderEdit"] = $"The employee you picked for the delivery does not work at that time! Please choose someone else!";
+                    TempData["MessageOrderEdit"] = $"The employee you picked for the order does not work at that time! Please choose someone else!";
                     var methods = _mapper.Map<List<PayingMethodDto>>(
                         await _context.PayingMethods
                         .ToListAsync());
@@ -297,7 +387,58 @@ public class OrderController : Controller
                         return NotFound();
                     }
                     ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                    ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                    ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
+                    return View(ModifiedOrder);
+                }
+
+                if (ModifiedOrder.IsDelivery == false && ModifiedOrder.WorkerId != 0 && ModifiedOrder.IsFinal == false)
+                {
+                    TempData["MessageOrderEdit"] = $"A pick-up order cannot have an assigned cashier before it is confirmed!";
+                    var methods = _mapper.Map<List<PayingMethodDto>>(
+                        await _context.PayingMethods
+                        .ToListAsync());
+                    if (methods == null)
+                    {
+                        return NotFound();
+                    }
+                    ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
+                    ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
+                    return View(ModifiedOrder);
+                }
+
+                if (ModifiedOrder.WorkerId == 0 && ModifiedOrder.IsFinal == true)
+                {
+                    TempData["MessageOrderEdit"] = $"An order cannot be finished without an assigned worker!";
+                    var methods = _mapper.Map<List<PayingMethodDto>>(
+                        await _context.PayingMethods
+                        .ToListAsync());
+                    if (methods == null)
+                    {
+                        return NotFound();
+                    }
+                    ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
+                    ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
+                    return View(ModifiedOrder);
+                }
+
+                var deliverer = deliverers!
+                               .Where(x => x.Id == ModifiedOrder.WorkerId)
+                               .FirstOrDefault();
+                var cashier = cashiers!
+                               .Where(x => x.Id == ModifiedOrder.WorkerId)
+                               .FirstOrDefault();
+                if ((cashier != null && ModifiedOrder.IsDelivery == true) || (deliverer != null && ModifiedOrder.IsDelivery == false))
+                {
+                    TempData["MessageOrderEdit"] = $"The employee you picked does not match the type of the order! Please choose someone adequate!";
+                    var methods = _mapper.Map<List<PayingMethodDto>>(
+                        await _context.PayingMethods
+                        .ToListAsync());
+                    if (methods == null)
+                    {
+                        return NotFound();
+                    }
+                    ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
+                    ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                     return View(ModifiedOrder);
                 }
                 /*
@@ -319,7 +460,7 @@ public class OrderController : Controller
                                 return NotFound();
                             }
                             ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                            ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                            ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                             return View(ModifiedOrder);
                         }
                         if (DateTime.Now.TimeOfDay < specialday.StartHour || DateTime.Now.TimeOfDay > specialday.EndHour)
@@ -333,7 +474,7 @@ public class OrderController : Controller
                                 return NotFound();
                             }
                             ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                            ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                            ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                             return View(ModifiedOrder);
                         }
                     }
@@ -355,7 +496,7 @@ public class OrderController : Controller
                                 return NotFound();
                             }
                             ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                            ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                            ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                             return View(ModifiedOrder);
                         }
                         if (DateTime.Now.TimeOfDay < workhour.StartHour || DateTime.Now.TimeOfDay > workhour.EndHour)
@@ -369,7 +510,7 @@ public class OrderController : Controller
                                 return NotFound();
                             }
                             ViewBag.AvailablePayingMethods = new SelectList(methods, "PayingMethodId", "Name");
-                            ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+                            ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
                             return View(ModifiedOrder);
                         }
                     }
@@ -377,7 +518,7 @@ public class OrderController : Controller
                 
                 if (ModifiedOrder.IsDelivery == false)
                 {
-                    ModifiedOrder.DeliveryId = 0;
+                    ModifiedOrder.WorkerId = 0;
                 }
                 */
 
@@ -430,7 +571,7 @@ public class OrderController : Controller
             return NotFound();
         }
         ViewBag.AvailablePayingMethods = new SelectList(payingmethods, "PayingMethodId", "Name");
-        ViewBag.UnaddedDeliverers = new SelectList(deliveries, "Id", "Email");
+        ViewBag.UnaddedWorkers = new SelectList(employees, "Id", "Email");
         return View(output);
     }
 

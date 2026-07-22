@@ -54,4 +54,7 @@
         <h1>Total cost of items is: @cost RON</h1>
     </tbody>
 </table>
+<div>
+    <a asp-action="Index" asp-controller="Order">Back to orders</a>
+<div/>
 @await Html.PartialAsync("_MessageResponse", "MessageOrderContent")

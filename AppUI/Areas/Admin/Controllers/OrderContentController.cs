@@ -13,7 +13,6 @@ using AppUI.Areas.Admin.Models.ViewModels;
 using AppUI.Areas.Admin.Models.DTOs;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
-using AppUI.Areas.Manager.Models.DTOs;
 //using Elfie.Serialization;
 using Microsoft.AspNetCore.Authorization;
 

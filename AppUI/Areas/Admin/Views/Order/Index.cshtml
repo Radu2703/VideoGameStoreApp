@@ -2,9 +2,11 @@
 
 @{
     ViewData["Title"] = "Index";
+    decimal cost = 0;
+    int solds = 0;
 }
 
-<h1>List of all of the orders received by the store</h1>
+<h1>List of all of the unfinished orders received by the store</h1>
 <table class="table">
     <thead>
         <tr>
@@ -21,7 +23,7 @@
                 Is it a Delivery?
             </th>
             <th>
-                Delivery Worker Name
+                Worker Name
             </th>
             <th>
                 Address
@@ -38,21 +40,14 @@
             <th>
                 Picked Arrival Time
             </th>
-            <th>
-                Is it finished?
-            </th>
-            <th>
-                Delivery Time
-            </th>
-            <th>
-                Feedback
-            </th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var item in Model.ListOrders!)
         {
+            solds += 1;
+            cost += item.Cost;
          <tr>
             <td>
                 @Html.DisplayFor(modelItem => item.Id)
@@ -71,14 +66,9 @@
                 @Html.DisplayFor(modelItem => item.DeliveryName)
             </td>
             }
-            else if(item.IsDelivery == false)
-            {<td>
-                Not a delivery
-            </td>
-            }
             else
             {<td>
-                A delivery worker hasn't accepted this order yet
+                No worker yet
             </td>
             }
             @if (item.Address != string.Empty && item.Address != null)
@@ -104,47 +94,22 @@
                 @Html.DisplayFor(modelItem => item.ArrivalTime)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.IsFinal)
-            </td>
-            @if (item.IsFinal == true)
-            {<td>
-                @Html.DisplayFor(modelItem => item.DeliveryTime)
-            </td>
-            }
-            else
-            {<td>
-                The order hasn't been delivered or picked up yet
-            </td>
-            }
-            @if (item.IsFinal == false)
-            {
-              <td>
-                  Order isn't finished, so feedback couldn't be sent
-              </td>
-            }
-            else if (item.Comment != null && item.Comment != string.Empty)
-            {
-              <td>
-                  @Html.DisplayFor(modelItem => item.Comment)
-              </td>
-            }
-            else
-            {
-              <td>
-                  The customer hasn't sent any feedback
-              </td>
-            }
-            <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
                 <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
                 <a asp-controller="OrderContent" asp-action="Index" asp-route-oid="@item.Id">Order's items</a> |
-                @if (item.Comment != null && item.Comment != string.Empty){
-                  <div> <a asp-action = "FeedBack" asp-route-id = "@item.Id">Feedback</a > | </div>
-                }
                 <a asp-action="Delete" asp-route-id="@item.Id">Remove</a>
             </td>
         </tr>
         }
+        <h2>Total number of the orders is: @solds</h2>
+        <br />
+        <a asp-action="TimePeriod" asp-route-id=1 class="btn btn-sm btn-primary">Last day</a>
+        |
+        <a asp-action="TimePeriod" asp-route-id=2 class="btn btn-sm btn-primary">Last month</a>
+        |
+        <a asp-action="TimePeriod" asp-route-id=3 class="btn btn-sm btn-primary">Last year</a>
+        <br />
+        <br />
     </tbody>
 </table>
 @await Html.PartialAsync("_MessageResponse", "MessageAdminOrder")

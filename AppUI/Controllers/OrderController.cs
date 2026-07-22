@@ -9,13 +9,10 @@ using AppUI.Data;
 using AppUI.Models.Entities;
 using AppUI.Models.CustomIdentity;
 using Microsoft.AspNetCore.Identity;
-using AppUI.Areas.Critic.Models.ViewModels;
-using AppUI.Areas.Critic.Models.DTOs;
 using System.Security.Cryptography;
 using AppUI.Models.ViewModels;
 using AppUI.Models.DTOs;
 using Microsoft.IdentityModel.Tokens;
-using AppUI.Areas.Manager.Models.DTOs;
 //using Elfie.Serialization;
 
 namespace AppUI.Controllers

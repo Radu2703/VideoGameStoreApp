@@ -29,13 +29,10 @@
                             <a class="nav-link text-dark" asp-area="Admin" asp-controller="Privacy" asp-action="Index">Privacy Policy</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="Role" asp-action="Index">Roles</a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="Admin" asp-controller="User" asp-action="Index">Users</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="EmployeeSchedule" asp-action="Index">Work Schedules</a>
+                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="EmployeeSchedule" asp-action="WeekDays">Employee Schedules</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="Admin" asp-controller="Publisher" asp-action="Index">Publishers</a>
@@ -56,7 +53,22 @@
                             <a class="nav-link text-dark" asp-area="Admin" asp-controller="Gender" asp-action="Index">Genders</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="EmployeeWork" asp-action="Index">Employee Work</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="VideoGamePublisher" asp-action="Index">Publisher Items</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="VideoGameReviewer" asp-action="Index">Reviewer Items</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="Admin" asp-controller="Order" asp-action="Index">Orders</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="PastOrder" asp-action="Index">History</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="Admin" asp-controller="Sale" asp-action="Index">Video Game Sales</a>
                         </li>
                     </ul>
                     <partial name="_PartialLogin" />
@@ -72,7 +84,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2023 - AppUI - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2026 - AppUI - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

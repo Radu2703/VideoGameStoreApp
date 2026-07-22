@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using AppUI.Areas.Admin.Models.DTOs;
 using AppUI.Areas.Admin.Models.ViewModels;
 using AppUI.Areas.Manager.Models.DTOs;
+using AppUI.Models.Entities;
 namespace AppUI.Areas.Admin.Controllers;
 
 [Area("Admin")]
@@ -87,8 +88,43 @@ public class WorkHourController : Controller
         {
             return BadRequest();
         }
+
         if (ModelState.IsValid)
         {
+            var employeeschedule = _mapper.Map<List<EmployeeScheduleVm>>(
+                await _context.EmployeeSchedules
+                .Include(c => c.Employee)
+                .Include(c => c.Day)
+                .Where(c => c.DayId == id && (modifiedWorkHour.IsWorkDay == false))
+                .OrderBy(c => c.DayId)
+                .ThenBy(c => c.StartHour)
+                .ThenBy(c => c.EndHour)
+                .ThenBy(c => c.Employee!.Email)
+                .ToListAsync());
+
+            if (employeeschedule != null && employeeschedule.Count > 0)
+            {
+                TempData["MessageWorkHour"] = $"An employee still works on <strong>{ExistentWorkHour.Name}</strong>. Remove it before you remove the work day.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var employeehours = _mapper.Map<List<EmployeeScheduleVm>>(
+                await _context.EmployeeSchedules
+                .Include(c => c.Employee)
+                .Include(c => c.Day)
+                .Where(c => c.DayId == id && (c.StartHour < modifiedWorkHour.StartHour || c.EndHour < modifiedWorkHour.StartHour || c.StartHour > modifiedWorkHour.EndHour || c.EndHour > modifiedWorkHour.EndHour))
+                .OrderBy(c => c.DayId)
+                .ThenBy(c => c.StartHour)
+                .ThenBy(c => c.EndHour)
+                .ThenBy(c => c.Employee!.Email)
+                .ToListAsync());
+
+            if (employeehours != null && employeehours.Count > 0)
+            {
+                TempData["MessageWorkHour"] = $"An employee's schedule wouldn't fit in the new work hours for <strong>{ExistentWorkHour.Name}</strong>!";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
                 TempData["MessageWorkHour"] = $"We modified work hours for <strong>{ExistentWorkHour.Name}</strong>!";

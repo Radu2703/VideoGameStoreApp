@@ -4,7 +4,7 @@
     ViewData["Title"] = "Index";
 }
 
-<h1>List of Orders you have made:</h1>
+<h1>List of orders you have made:</h1>
 <table class="table">
     <thead>
         <tr>
@@ -19,9 +19,6 @@
             </th>
             <th>
                 Is it a Delivery?
-            </th>
-            <th>
-                Delivery Worker Name
             </th>
             <th>
                 Address
@@ -63,21 +60,6 @@
             <td>
                 @Html.DisplayFor(modelItem => item.IsDelivery)
             </td>
-            @if (item.DeliveryName != string.Empty && item.DeliveryName != null)
-            {<td>
-                @Html.DisplayFor(modelItem => item.DeliveryName)
-            </td>
-            }
-            else if(item.IsDelivery == false)
-            {<td>
-                Not a delivery
-            </td>
-            }
-            else
-            {<td>
-                A delivery worker hasn't accepted this order yet
-            </td>
-            }
             @if (item.Address != string.Empty && item.Address != null)
             {<td>
                 @Html.DisplayFor(modelItem => item.Address)

@@ -1,12 +1,12 @@
-﻿@model List<CardReviewVm>
+﻿@model IndexVideoGameReviewsVm
 <section class="row">
     <article class="me-2">
-        <h4>Reviews</h4>
+        <h1>Reviews for <strong>@Html.DisplayFor(model => model.VideoGame)</strong></h1>
     </article>
     <section class="row">
-        @if (Model.Count() > 0)
+        @if (Model.ListReviews!.Count() > 0)
         {
-            @foreach (var item in Model)
+            @foreach (var item in Model.ListReviews!)
             {
                 <article class="col-4 mb-3">
                     @await Html.PartialAsync("Review/_Card", item)
@@ -19,3 +19,7 @@
         }
     </section>
 </section>
+<br />
+<div>
+    <a asp-action="Items">Back to list</a>
+</div>

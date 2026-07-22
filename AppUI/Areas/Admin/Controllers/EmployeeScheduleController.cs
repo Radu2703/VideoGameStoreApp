@@ -14,10 +14,9 @@ using System.Security.Cryptography;
 using AppUI.Areas.Admin.Models.DTOs;
 using AppUI.Areas.Admin.Models.ViewModels;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using AppUI.Areas.Manager.Models.DTOs;
 using NuGet.Packaging.Signing;
 
-namespace AppUI.Areas.Admin.Controllers;
+namespace WebAppUI.Areas.Admin.Controllers;
 
 [Area("Admin")]
 [Authorize(Roles = "Administrator")]
@@ -40,25 +39,44 @@ public class EmployeeScheduleController : Controller
 
     [Route("Admin/EmployeeSchedules")]
     // GET: Admin/EmployeeSchedule
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> WeekDays()
+    {
+        if (_context.WorkHours == null)
+            return Problem("Entity set 'ApplicationDbContext.WorkHours' is null.");
+        return View(_mapper.Map<List<ExistentWorkHourDto>>
+            (await _context.WorkHours.Where(c => c.IsWorkDay).OrderBy(c => c.Id).ToListAsync()));
+    }
+
+    [Route("Admin/EmployeeSchedule/Index/{id}")]
+    // GET: Admin/EmployeeSchedule/5
+    public async Task<IActionResult> Index(int? id)
     {
         var employeeschedules = _mapper.Map<List<EmployeeScheduleVm>>(
             await _context.EmployeeSchedules
             .Include(c => c.Employee)
             .Include(c => c.Day)
-            .OrderBy(c => c.Day)
-            .ThenBy(c => c.Employee)
+            .Where(c => c.DayId == id)
+            .OrderBy(c => c.DayId)
+            .ThenBy(c => c.StartHour)
+            .ThenBy(c => c.EndHour)
+            .ThenBy(c => c.Employee!.Email)
             .ToListAsync());
+
+        var workhour = await _context.WorkHours
+                            .Where(c => c.Id == id)
+                            .FirstOrDefaultAsync();
         var output = new IndexEmployeeSchedulesVm()
         {
+            DayId = (int)id!,
+            Day = workhour!.Name,
             ListEmployeeSchedules = employeeschedules
         };
         return View(output);
     }
 
     // GET: Admin/EmployeeSchedule/Details/5
-    [Route("Admin/EmployeeSchedule/Details/{eid}/{did}")]
-    public async Task<IActionResult> Details(int? eid, int? did)
+    [Route("Admin/EmployeeSchedule/Details/{did}/{eid}")]
+    public async Task<IActionResult> Details(int? did, int? eid)
     {
         if (eid == null || did == null || _context.EmployeeSchedules == null)
         {
@@ -90,33 +108,35 @@ public class EmployeeScheduleController : Controller
             await _userManager.GetUsersInRoleAsync("Delivery"));
         var cashiers = _mapper.Map<List<ExistentUserDto>>(
             await _userManager.GetUsersInRoleAsync("Cashier"));
-        if(deliverers == null && cashiers == null)
+        if (deliverers == null && cashiers == null)
         {
-            TempData["MessageEmployeeSchedule"] = $"No employee (delivery or cashier) has been registered yet!";
-            return RedirectToAction(nameof(Index));
+            TempData["MessageEmpWorkDay"] = $"No employee has been registered yet!";
+            return RedirectToAction(nameof(WeekDays));
         }
         System.Collections.IEnumerable? employees = null;
-        if (deliverers == null)
+        if (deliverers == null && cashiers != null)
         {
             employees = cashiers;
         }
-        else if (cashiers == null)
+        else if (cashiers == null && deliverers != null)
         {
             employees = deliverers;
         }
-        else
+        else if (cashiers != null && deliverers != null)
         {
-            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers));
+            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers).OrderBy(i => i.Id));
         }
         ViewBag.UnaddedEmployees = new SelectList(employees, "Id", "Email");
 
         var workHours = _mapper.Map<List<ExistentWorkHourDto>>(
             await _context.WorkHours
+            .Where(c => c.IsWorkDay)
+            .OrderBy(c => c.Id)
             .ToListAsync());
         if (workHours == null)
         {
-            TempData["MessageEmployeeSchedule"] = $"No work hour has been registered yet!";
-            return RedirectToAction(nameof(Index));
+            TempData["MessageEmpWorkDay"] = $"No work hour has been registered yet!";
+            return RedirectToAction(nameof(WeekDays));
         }
         ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
         return View();
@@ -140,30 +160,32 @@ public class EmployeeScheduleController : Controller
             await _userManager.GetUsersInRoleAsync("Cashier"));
         if (deliverers == null && cashiers == null)
         {
-            TempData["MessageEmployeeSchedule"] = $"No employee (delivery or cashier) has been registered yet!";
-            return RedirectToAction(nameof(Index));
+            TempData["MessageEmpWorkDay"] = $"No employee has been registered yet!";
+            return RedirectToAction(nameof(WeekDays));
         }
         System.Collections.IEnumerable? employees = null;
-        if (deliverers == null)
+        if (deliverers == null && cashiers != null)
         {
             employees = cashiers;
         }
-        else if (cashiers == null)
+        else if (cashiers == null && deliverers != null)
         {
             employees = deliverers;
         }
-        else
+        else if (cashiers != null && deliverers != null)
         {
-            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers));
+            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers).OrderBy(i => i.Id));
         }
 
         var workHours = _mapper.Map<List<ExistentWorkHourDto>>(
             await _context.WorkHours
+            .Where(c => c.IsWorkDay)
+            .OrderBy(c => c.Id)
             .ToListAsync());
         if (workHours == null)
         {
-            TempData["MessageEmployeeSchedule"] = $"No work hour has been registered yet!";
-            return RedirectToAction(nameof(Index));
+            TempData["MessageEmpWorkDay"] = $"No work hour has been registered yet!";
+            return RedirectToAction(nameof(WeekDays));
         }
 
         var history = _mapper.Map<List<ExistentEmployeeScheduleDto>>(
@@ -175,8 +197,10 @@ public class EmployeeScheduleController : Controller
 
         if (history != null && history.Count>0)
         {
-            TempData["MessageEmployeeSchedule"] = $"There is already a work day schedule for employee {employeeSchedule.Employee} on that day!";
-            return RedirectToAction(nameof(Index));
+            TempData["MessageEmployeeScheduleAdd"] = $"There is already a work day schedule for the employee {employeeSchedule.Employee} on that day!";
+            ViewBag.UnaddedEmployees = new SelectList(employees, "Id", "Email");
+            ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
+            return View(employeeSchedule);
         }
 
         if (ModelState.IsValid)
@@ -186,28 +210,28 @@ public class EmployeeScheduleController : Controller
                                .FirstOrDefaultAsync();
             if (workhour == null)
             {
-                TempData["MessageEmployeeSchedule"] = $"The work day has not been registered yet!";
-                return RedirectToAction(nameof(Index));
+                TempData["MessageEmpWorkDay"] = $"The work day has not been registered yet!";
+                return RedirectToAction(nameof(WeekDays));
             }
             if (workhour != null)
             {
                 if (workhour.IsWorkDay == false)
                 {
-                    TempData["MessageEmployeeScheduleAdd"] = $"No work is done on {workhour.Name}! Please choose a different date!";
+                    TempData["MessageEmployeeScheduleAdd"] = $"No work is done on {workhour.Name}! Please choose a different day!";
                     ViewBag.UnaddedEmployees = new SelectList(employees, "Id", "Email");
                     ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
                     return View(employeeSchedule);
                 }
                 if (employeeSchedule.StartHour < workhour.StartHour || employeeSchedule.StartHour > workhour.EndHour)
                 {
-                    TempData["MessageEmployeeScheduleAdd"] = $"Start time for employee {employeeSchedule.Employee} needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
+                    TempData["MessageEmployeeScheduleAdd"] = $"Start time for the employee {employeeSchedule.Employee} needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
                     ViewBag.UnaddedEmployees = new SelectList(employees, "Id", "Email");
                     ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
                     return View(employeeSchedule);
                 }
                 if (employeeSchedule.EndHour < workhour.StartHour || employeeSchedule.EndHour > workhour.EndHour)
                 {
-                    TempData["MessageEmployeeScheduleAdd"] = $"End time for employee {employeeSchedule.Employee} needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
+                    TempData["MessageEmployeeScheduleAdd"] = $"End time for the employee {employeeSchedule.Employee} needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
                     ViewBag.UnaddedEmployees = new SelectList(employees, "Id", "Email");
                     ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
                     return View(employeeSchedule);
@@ -216,8 +240,8 @@ public class EmployeeScheduleController : Controller
             var newEmployeeSchedule = _mapper.Map<EmployeeSchedule>(employeeSchedule);
             _context.Add(newEmployeeSchedule);
             await _context.SaveChangesAsync();
-            TempData["MessageEmployeeSchedule"] = $"The employee <strong>{employeeSchedule.Employee}</strong> was successfully scheduled on {workhour!.Name} at hours {employeeSchedule.StartHour} - {employeeSchedule.EndHour}!";
-            return RedirectToAction(nameof(Index));
+            TempData["MessageEmpWorkDay"] = $"The employee <strong>{employeeSchedule.Employee}</strong> was successfully scheduled on {workhour!.Name} at hours {employeeSchedule.StartHour} - {employeeSchedule.EndHour}!";
+            return RedirectToAction(nameof(WeekDays));
         }
         /*
         ViewData["DayId"] = new SelectList(_context.WorkHours, "Id", "Id", employeeSchedule.DayId);
@@ -230,7 +254,7 @@ public class EmployeeScheduleController : Controller
     }
 
     // GET: Admin/EmployeeSchedule/Edit/5
-    public async Task<IActionResult> Edit(int? eid, int? did)
+    public async Task<IActionResult> Edit(int? did, int? eid)
     {
         if (eid == null || did == null || _context.EmployeeSchedules == null)
         {
@@ -255,7 +279,7 @@ public class EmployeeScheduleController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? eid, int? did, [FromForm] ExistentEmployeeScheduleDto modifiedEmployeeSchedule)
+    public async Task<IActionResult> Edit(int? did, int? eid, [FromForm] ExistentEmployeeScheduleDto modifiedEmployeeSchedule)
     {
         if (eid == null || did == null || _context.EmployeeSchedules == null)
         {
@@ -282,30 +306,32 @@ public class EmployeeScheduleController : Controller
             await _userManager.GetUsersInRoleAsync("Cashier"));
         if (deliverers == null && cashiers == null)
         {
-            TempData["MessageEmployeeSchedule"] = $"No employee (delivery or cashier) has been registered yet!";
-            return RedirectToAction(nameof(Index));
+            TempData["MessageEmployeeSchedule"] = $"No employee has been registered yet!";
+            return RedirectToAction(nameof(Index), new { id = did });
         }
         System.Collections.IEnumerable? employees = null;
-        if (deliverers == null)
+        if (deliverers == null && cashiers != null)
         {
             employees = cashiers;
         }
-        else if (cashiers == null)
+        else if (cashiers == null && deliverers != null)
         {
             employees = deliverers;
         }
-        else
+        else if (cashiers != null && deliverers != null)
         {
-            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers));
+            employees = _mapper.Map<List<ExistentUserDto>>(deliverers.Concat(cashiers).OrderBy(i => i.Id));
         }
-
+        
         var workHours = _mapper.Map<List<ExistentWorkHourDto>>(
             await _context.WorkHours
+            .Where(c => c.IsWorkDay)
+            .OrderBy(c => c.Id)
             .ToListAsync());
         if (workHours == null)
         {
             TempData["MessageEmployeeSchedule"] = $"No work hour has been registered yet!";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { id = did });
         }
 
         if (ModelState.IsValid)
@@ -318,25 +344,25 @@ public class EmployeeScheduleController : Controller
                 if (workhour == null)
                 {
                     TempData["MessageEmployeeSchedule"] = $"The work day has not been registered yet!";
-                    return RedirectToAction(nameof(Index));
+                    return RedirectToAction(nameof(Index), new { id = did });
                 }
                 if (workhour != null)
                 {
                     if (workhour.IsWorkDay == false)
                     {
-                        TempData["MessageEmployeeScheduleEdit"] = $"No work is done on {workhour.Name}! Please choose a different date!";
+                        TempData["MessageEmployeeScheduleEdit"] = $"No work is done on {workhour.Name}! Please choose a different day!";
                         ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
                         return View(modifiedEmployeeSchedule);
                     }
                     if (modifiedEmployeeSchedule.StartHour < workhour.StartHour || modifiedEmployeeSchedule.StartHour > workhour.EndHour)
                     {
-                        TempData["MessageEmployeeScheduleEdit"] = $"Start time for employee ({modifiedEmployeeSchedule.Employee}) needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
+                        TempData["MessageEmployeeScheduleEdit"] = $"Start time for the employee ({modifiedEmployeeSchedule.Employee}) needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
                         ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
                         return View(modifiedEmployeeSchedule);
                     }
                     if (modifiedEmployeeSchedule.EndHour < workhour.StartHour || modifiedEmployeeSchedule.EndHour > workhour.EndHour)
                     {
-                        TempData["MessageEmployeeScheduleEdit"] = $"End time for employee ({modifiedEmployeeSchedule.Employee}) needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
+                        TempData["MessageEmployeeScheduleEdit"] = $"End time for the employee ({modifiedEmployeeSchedule.Employee}) needs to be between {workhour.StartHour} and {workhour.EndHour} on {workhour.Name}! Please choose a different time!";
                         ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
                         return View(modifiedEmployeeSchedule);
                     }
@@ -345,7 +371,7 @@ public class EmployeeScheduleController : Controller
                 var weekday = modifiedEmployeeSchedule.Day;
 
                 var orders = await _context.Orders
-                               .Where(i => i.DeliveryId.Equals(modifiedEmployeeSchedule.EmployeeId) && i.IsFinal == false
+                               .Where(i => i.WorkerId.Equals(modifiedEmployeeSchedule.EmployeeId) && i.IsFinal == false
                                 && (i.ArrivalTime.TimeOfDay < modifiedEmployeeSchedule.StartHour || i.ArrivalTime.TimeOfDay > modifiedEmployeeSchedule.EndHour))
                                .FirstOrDefaultAsync();
 
@@ -372,14 +398,14 @@ public class EmployeeScheduleController : Controller
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { id = did });
         }
         ViewBag.WorkHours = new SelectList(workHours, "Id", "Name");
         return View(modifiedEmployeeSchedule);
     }
 
     // GET: Admin/EmployeeSchedule/Delete/5
-    public async Task<IActionResult> Delete(int? eid, int? did)
+    public async Task<IActionResult> Delete(int? did, int? eid)
     {
         if (eid == null || did == null || _context.EmployeeSchedules == null)
         {
@@ -401,7 +427,7 @@ public class EmployeeScheduleController : Controller
     // POST: Admin/EmployeeSchedule/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? eid, int? did)
+    public async Task<IActionResult> DeleteConfirmed(int? did, int? eid)
     {
         if (eid == null || did == null || _context.EmployeeSchedules == null)
         {
@@ -421,20 +447,21 @@ public class EmployeeScheduleController : Controller
             var weekday = employeeSchedule.Day!.Name;
 
             var orders = await _context.Orders
-                               .Where(i => i.DeliveryId.Equals(employeeSchedule.EmployeeId) && i.IsFinal == false)
+                               .Where(i => i.WorkerId.Equals(employeeSchedule.EmployeeId) && i.IsFinal == false)
                                .FirstOrDefaultAsync();
 
             if (orders != null && orders.ArrivalTime.DayOfWeek.ToString().Equals(weekday))
             {
                 TempData["MessageEmployeeSchedule"] = $"Employee {employeeSchedule.Employee} has an order to deliver at {orders.ArrivalTime.TimeOfDay} on {orders.ArrivalTime.Day}/{orders.ArrivalTime.Month}! Please wait until the order is delivered or modify the order itself!";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index), new { id = did });
             }
 
+            TempData["MessageEmployeeSchedule"] = $"We removed work hours for <strong>{employeeSchedule.Employee}</strong> on <strong>{employeeSchedule.Day.Name}</strong>!";
             _context.EmployeeSchedules.Remove(employeeSchedule);
         }
         
         await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { id = did });
     }
 
     private bool EmployeeScheduleExists(int id)

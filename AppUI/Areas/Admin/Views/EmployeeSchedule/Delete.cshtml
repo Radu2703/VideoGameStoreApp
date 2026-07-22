@@ -40,7 +40,10 @@
     <form asp-action="Delete" asp-route-eid="@Model.EmployeeId" asp-route-did="@Model.DayId">
         <input type="hidden" asp-for="EmployeeId" />
         <input type="hidden" asp-for="DayId" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <partial name="_BackToList" />
+        <input type="submit" value="Delete" class="btn btn-danger" />
     </form>
+</div>
+<br />
+<div>
+    <a asp-action="Index" asp-route-id="@Model.DayId">Back to list</a>
 </div>

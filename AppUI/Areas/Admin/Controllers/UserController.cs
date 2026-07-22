@@ -105,15 +105,26 @@ public class UserController : Controller
                 }
                 else
                 {
-                    if (await _userManager.IsInRoleAsync(existentUser, "Administrator"))
+                    var admins = await _userManager.GetUsersInRoleAsync("Administrator");
+                    admins = admins.Where(i => i.Id != id).ToList();
+                    if (await _userManager.IsInRoleAsync(existentUser, "Administrator") && admins != null && admins.Count > 0)
                     {
                         await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Administrator" });
                         message.Append($"The user <strong>{existentUser.Email}</strong> is no longer an <strong>Administrator</strong>!<br/>");
                         //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is no longer a <strong>Administrator</strong>!<br/>";
                     }
+                    else if (admins == null || admins.Count <= 0)
+                    {
+                        message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Administrator</strong> role, as they are the only administrator left!<br/>");
+                        //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Administrator</strong> role, as they are the only administrator left!";
+                        modifiedUser.IsManager = false;
+                        modifiedUser.IsCritic = false;
+                        modifiedUser.IsCashier = false;
+                        modifiedUser.IsDelivery = false;
+                    }
                     else
                     {
-                        message.Append($"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!<br/>");
+                        //message.Append($"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!<br/>");
                         //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!";
                     }
                 }
@@ -145,13 +156,20 @@ public class UserController : Controller
                     }
                     else
                     {
-                        message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Manager</strong> role, as they are still associated with a publisher!<br/>");
-                        //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Manager</strong> role, as they are still associated with a publisher!<br/>";
+                            if (await _userManager.IsInRoleAsync(existentUser, "Administrator"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Administrator" }); }
+                            message.Clear();
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!<br/>"); 
+                            message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Manager</strong> role, as they are still associated with a publisher!<br/>");
+                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Manager</strong> role, as they are still associated with a publisher!<br/>";
+                            modifiedUser.IsCritic = false;
+                            modifiedUser.IsCashier = false;
+                            modifiedUser.IsDelivery = false;
                     }
                 }
                 else
                 {
-                    message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Manager</strong>!<br/>");
+                    //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Manager</strong>!<br/>");
                     //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is still not a <strong>Manager</strong>!<br/>";
                 }
             }
@@ -174,7 +192,7 @@ public class UserController : Controller
                 {
                     if (await _userManager.IsInRoleAsync(existentUser, "Critic"))
                     {
-                        var company = await _context.PublisherManagers.FirstOrDefaultAsync(i => i.ManagerId == id);
+                        var company = await _context.ReviewerCritics.FirstOrDefaultAsync(i => i.CriticId == id);
                         if (company is null)
                         {
                             await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Critic" });
@@ -183,13 +201,24 @@ public class UserController : Controller
                         }
                         else
                         {
+                            if (await _userManager.IsInRoleAsync(existentUser, "Administrator"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Administrator" }); }
+                            message.Clear();
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!<br/>");
+
+                            if (await _userManager.IsInRoleAsync(existentUser, "Manager"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Manager" }); }
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Manager</strong>!<br/>");
+
                             message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>");
                             //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>";
+                            modifiedUser.IsCashier = false;
+                            modifiedUser.IsDelivery = false;
                         }
                     }
                     else
                     {
-                        message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Critic</strong>!<br/>");
+                        //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Critic</strong>!<br/>");
                         //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is still not a <strong>Critic</strong>!<br/>";
                     }
                 }
@@ -212,7 +241,7 @@ public class UserController : Controller
                 {
                     if (await _userManager.IsInRoleAsync(existentUser, "Delivery"))
                     {
-                        var order = await _context.Orders.FirstOrDefaultAsync(i => i.DeliveryId == id && i.IsFinal==false);
+                        var order = await _context.Orders.FirstOrDefaultAsync(i => i.WorkerId == id && i.IsFinal==false);
                         var schedule = await _context.EmployeeSchedules.FirstOrDefaultAsync(i => i.EmployeeId == id);
                         if (order is null && schedule is null)
                         {
@@ -221,20 +250,36 @@ public class UserController : Controller
                             //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is no longer a <strong>Critic</strong>!<br/>";
                         }
                         else
-                        {if(order is not null && schedule is not null)
-                            message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with undelivered orders and a schedule!<br/>");
-                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>";
-                         if(order is not null && schedule is null)
-                            message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with undelivered orders!<br/>");
-                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>";
-                         if(order is null && schedule is not null)
-                            message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with a schedule!<br/>");
-                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>";
+                        {
+                            if (await _userManager.IsInRoleAsync(existentUser, "Administrator"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Administrator" }); }
+                            message.Clear();
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!<br/>");
+
+                            if (await _userManager.IsInRoleAsync(existentUser, "Manager"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Manager" }); }
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Manager</strong>!<br/>");
+
+                            if (await _userManager.IsInRoleAsync(existentUser, "Critic"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Critic" }); }
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Critic</strong>!<br/>");
+
+                            modifiedUser.IsCashier = false;
+
+                            if (order is not null && schedule is not null)
+                                message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with undelivered orders and a schedule!<br/>");
+                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with undelivered orders and a schedule!!<br/>";
+                            if (order is not null && schedule is null)
+                                message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with undelivered orders!<br/>");
+                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with undelivered orders!<br/>";
+                            if (order is null && schedule is not null)
+                                message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with a schedule!<br/>");
+                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Delivery worker</strong> role, as they are still associated with a schedule!<br/>";
                         }
                     }
                     else
                     {
-                        message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Delivery worker</strong>!<br/>");
+                        //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Delivery worker</strong>!<br/>");
                         //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is still not a <strong>Critic</strong>!<br/>";
                     }
                 }
@@ -257,7 +302,7 @@ public class UserController : Controller
                 {
                     if (await _userManager.IsInRoleAsync(existentUser, "Cashier"))
                     {
-                        //var order = await _context.Orders.FirstOrDefaultAsync(i => i.DeliveryId == id && i.IsFinal == false);
+                        //var order = await _context.Orders.FirstOrDefaultAsync(i => i.WorkerId == id && i.IsFinal == false);
                         var schedule = await _context.EmployeeSchedules.FirstOrDefaultAsync(i => i.EmployeeId == id);
                         if (schedule is null)
                         {
@@ -266,23 +311,40 @@ public class UserController : Controller
                             //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is no longer a <strong>Critic</strong>!<br/>";
                         }
                         else
-                        {   /*
+                        {
+                            if (await _userManager.IsInRoleAsync(existentUser, "Administrator"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Administrator" }); }
+                            message.Clear();
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!<br/>");
+
+                            if (await _userManager.IsInRoleAsync(existentUser, "Manager"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Manager" }); }
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Manager</strong>!<br/>");
+
+                            if (await _userManager.IsInRoleAsync(existentUser, "Critic"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Critic" }); }
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Critic</strong>!<br/>");
+
+                            if (await _userManager.IsInRoleAsync(existentUser, "Delivery"))
+                            { await _userManager.RemoveFromRolesAsync(existentUser, new string[] { "Delivery" }); }
+                            //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Delivery worker</strong>!<br/>");
+
+                            /*
                             if (order is not null && schedule is not null)
                                 message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Cashier</strong> role, as they are still associated with undelivered orders and a schedule!<br/>");
-                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>";
+                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Cashier</strong> role, as they are still associated with undelivered orders and a schedule!<br/>";
                             if (order is not null && schedule is null)
                                 message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Cashier</strong> role, as they are still associated with undelivered orders!<br/>");
-                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>";
+                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Cashier</strong> role, as they are still associated with undelivered orders!<br/>";
                             if (schedule is not null)
                             */
                             message.Append($"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Cashier</strong> role, as they are still associated with a schedule!<br/>");
-                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Critic</strong> role, as they are still associated with a reviewer!<br/>";
-
+                            //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> cannot be revoked of their <strong>Cashier</strong> role, as they are still associated with a schedule!<br/>";
                         }
                     }
                     else
                     {
-                        message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Cashier</strong>!");
+                        //message.Append($"The user <strong>{existentUser.Email}</strong> is still not a <strong>Cashier</strong>!");
                         //TempData["MessageUser"] = $"The user <strong>{existentUser.Email}</strong> is still not an <strong>Administrator</strong>!";
                     }
                 }

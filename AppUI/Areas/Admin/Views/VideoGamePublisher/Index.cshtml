@@ -1,0 +1,46 @@
+﻿@model IndexVideoGameVm
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>List of the video games publishers</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Publisher id
+            </th>
+            <th>
+                Publisher name
+            </th>
+            <th>
+                Number of video games
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.ListVideoGamePublishers!)
+        {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.PublisherId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VideoGames)
+            </td>
+            @if(item.VideoGames > 0)
+            {
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.PublisherId">Video games</a>
+                </td>
+            }
+        </tr>
+        }<br />
+    </tbody>
+</table>
+@await Html.PartialAsync("_MessageResponse", "MessageVideoGamePublisher")

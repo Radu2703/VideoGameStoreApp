@@ -10,7 +10,7 @@ public class OrderDetailsVm
     public int CustomerId { get; set; }
     public string Customer { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public int? DeliveryId { get; set; }
+    public int? WorkerId { get; set; }
     [Display(Name = "Delivery Employee Name")]
     public string DeliveryName { get; set; } = string.Empty;
     [Display(Name = "Is it a delivery?")]

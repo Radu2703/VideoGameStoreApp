@@ -11,7 +11,7 @@ public class ExistentDeliveryDto
     [Display(Name = "Is it a delivery?")]
     public bool IsDelivery { get; set; } = true;
     [Display(Name = "Delivery Name")]
-    public int? DeliveryId { get; set; }
+    public int? WorkerId { get; set; }
     public string Address { get; set; } = string.Empty;
     [Tip]
     public decimal Tip { get; set; }
@@ -38,7 +38,7 @@ public class ExistentDeliveryDto
             //if (IsFinal != ExistentOrder.IsFinal)
             //    {ExistentOrder.DeliveryTime = DeliveryTime;}
             //ExistentOrder.IsFinal = IsFinal;
-            ExistentOrder.DeliveryId = DeliveryId;
+            ExistentOrder.WorkerId = WorkerId;
         }
     }
 }

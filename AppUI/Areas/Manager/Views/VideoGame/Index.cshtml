@@ -5,7 +5,7 @@
     var existVideoGamesOrOffers = false;
 }
 
-<h1>List of Video Games for the Publisher <strong>@Html.DisplayFor(m=>Model.Publisher)</strong></h1>
+<h1>List of video games for the Publisher <strong>@Html.DisplayFor(m=>Model.Publisher)</strong></h1>
 
 <p>
     <a asp-action="Create" class="btn btn-sm btn-outline-success">Add a Video Game</a>
@@ -71,8 +71,6 @@
                         existVideoGamesOrOffers = true;
                         <text> | </text>
                         <a asp-action="Offer" asp-route-id="@item.Id">Offer</a>
-                        <text> | </text>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalOffer" data-bs-id="@item.Id">Modal Offer</button>
                     }
                 </td>
             </tr>
@@ -80,6 +78,3 @@
     </tbody>
 </table>
 @await Html.PartialAsync("_MessageResponse", "MessageVideoGame")
-@if(existVideoGamesOrOffers){
-    await Html.RenderPartialAsync("Offer/_AddEdit", new AddEditVideoGameOfferDto() { PromoText="" });
-}

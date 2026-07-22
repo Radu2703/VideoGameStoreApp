@@ -26,6 +26,7 @@ public class ReviewerController : Controller
     }
 
     // GET: Admin/Reviewer
+    [Route("Admin/Reviewers")]
     public async Task<IActionResult> Index()
     {
         if (_context.Reviewers == null)
@@ -34,6 +35,7 @@ public class ReviewerController : Controller
     }
 
     // GET: Admin/Reviewer/Details/5
+    [Route("Admin/Reviewer/Details/{id}")]
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null || _context.Reviewers == null)
@@ -131,9 +133,9 @@ public class ReviewerController : Controller
         {
             try
             {
+                TempData["MessageReviewer"] = $"We modified reviewer <strong>{ExistentReviewer.Name}</strong> in <strong>{modifiedReviewer.Name}</strong>!";
                 ExistentReviewer.Name = modifiedReviewer.Name;
                 _context.Update(ExistentReviewer);
-                TempData["MessageReviewer"] = $"We modified reviewer <strong>{ExistentReviewer.Name}</strong> in <strong>{modifiedReviewer.Name}</strong>!";
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
@@ -190,8 +192,9 @@ public class ReviewerController : Controller
         {
             if (ExistentReviewer.Reviews!.Count == 0 && ExistentReviewer.Critics!.Count == 0)
             {
-                _context.Reviewers.Remove(ExistentReviewer);
                 TempData["MessageReviewer"] = $"Reviewer <strong>{ExistentReviewer.Name}</strong> was successfully deleted!";
+                _context.Reviewers.Remove(ExistentReviewer);
+                
             }
             else
             {

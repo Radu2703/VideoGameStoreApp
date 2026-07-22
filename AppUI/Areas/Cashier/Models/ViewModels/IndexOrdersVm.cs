@@ -1,4 +1,4 @@
-﻿namespace AppUI.Areas.Delivery.Models.ViewModels
+﻿namespace AppUI.Areas.Cashier.Models.ViewModels
 {
     public class IndexOrdersVm
     {

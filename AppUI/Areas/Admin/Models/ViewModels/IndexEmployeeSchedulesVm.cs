@@ -1,7 +1,8 @@
-﻿namespace AppUI.Areas.Admin.Models.ViewModels
+﻿namespace AppUI.Areas.Admin.Models.ViewModels;
+
+public class IndexEmployeeSchedulesVm
 {
-    public class IndexEmployeeSchedulesVm
-    {
-        public List<EmployeeScheduleVm>? ListEmployeeSchedules { get; set; }
-    }
+    public int DayId { get; set; }
+    public string Day { get; set; } = string.Empty;
+    public List<EmployeeScheduleVm>? ListEmployeeSchedules { get; set; }
 }

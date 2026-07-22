@@ -8,14 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Areas\Admin\Views\Role\**" />
     <Compile Remove="Areas\Admin\Views\Shared\**" />
+    <Content Remove="Areas\Admin\Views\Role\**" />
     <Content Remove="Areas\Admin\Views\Shared\**" />
+    <EmbeddedResource Remove="Areas\Admin\Views\Role\**" />
     <EmbeddedResource Remove="Areas\Admin\Views\Shared\**" />
+    <None Remove="Areas\Admin\Views\Role\**" />
     <None Remove="Areas\Admin\Views\Shared\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Controllers\ReviewerController.cs" />
+    <Compile Remove="Areas\Admin\Controllers\RoleController.cs" />
   </ItemGroup>
 
   <ItemGroup>

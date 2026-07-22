@@ -1,5 +1,5 @@
 ﻿@model VideoGameDetailsVm
-<section class="row">
+<article class="row">
     <article class="me-2">
         <h4>@Html.DisplayFor(m => Model.Title)</h4>
     </article>
@@ -23,7 +23,11 @@
                 </ul>
             </dd>
             <dt>Publisher:</dt>
-            <dd>@Html.DisplayFor(m => Model.Publisher)</dd>
+            <dd>
+                <ul>
+                    <li><a asp-controller="Publisher" asp-action="Details" asp-route-id="@Model.PublisherId">@Html.DisplayFor(m => Model.Publisher)</a></li>
+                </ul>
+            </dd>
             <dt>Release year:</dt>
             <dd>@Html.DisplayFor(m => Model.ReleaseYear)</dd>
             <dt>Stock:</dt>
@@ -39,5 +43,9 @@
                 }
             </dd>
         </dl>
-</section>
-</section>
+    </article>
+</article>
+<br />
+<div>
+    <partial name="_BackToList" />
+</div>
